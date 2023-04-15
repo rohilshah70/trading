@@ -171,6 +171,10 @@ private fun TradingView(
             )
         }
     }
+
+    if (uiState.showError){
+        ErrorView()
+    }
 }
 
 @Composable

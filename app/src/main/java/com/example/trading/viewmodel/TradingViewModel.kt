@@ -44,18 +44,23 @@ class TradingViewModel @Inject constructor(
     init {
         _uiState.update { currentState ->
             currentState.copy(
-                showLoader = true
+                showLoader = true,
+                showError = false
             )
         }
         viewModelScope.launch(Dispatchers.IO) {
             //TODO remove in actual usage
             delay(3000)
             response = apiService.getProducts()
-            response?.let {
+            if(response != null){
                 _uiState.value = TradingUiState(
                     response = response
                 )
                 createBottomSheetData()
+            } else {
+                _uiState.value = TradingUiState(
+                    showError = true
+                )
             }
         }
     }
@@ -133,5 +138,6 @@ class TradingViewModel @Inject constructor(
 data class TradingUiState(
     val response: ResponseVO? = null,
     val bottomData: List<TitleAmountVO>? = null,
-    val showLoader: Boolean = false
+    val showLoader: Boolean = false,
+    val showError: Boolean = false
 )
