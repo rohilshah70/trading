@@ -53,7 +53,7 @@ class TradingViewModel @Inject constructor(
         }
         viewModelScope.launch(Dispatchers.IO) {
             //TODO remove in actual usage
-            delay(3000)
+//            delay(3000)
             response = apiService.getProducts()
             if (response != null) {
                 saveResponseInPref(context = context, responseVO = response)
