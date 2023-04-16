@@ -4,8 +4,10 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.*
 import com.example.trading.R
+import com.example.trading.getResponseFromPref
 import com.example.trading.network.ApiService
 import com.example.trading.roundOff
+import com.example.trading.saveResponseInPref
 import com.example.trading.vo.ResponseVO
 import com.example.trading.vo.TitleAmountVO
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,15 +54,27 @@ class TradingViewModel @Inject constructor(
             //TODO remove in actual usage
             delay(3000)
             response = apiService.getProducts()
-            if(response != null){
+            if (response != null) {
+                saveResponseInPref(context = context, responseVO = response)
+                println("Saved data --> ${getResponseFromPref(context)}")
                 _uiState.value = TradingUiState(
                     response = response
                 )
                 createBottomSheetData()
             } else {
-                _uiState.value = TradingUiState(
-                    showError = true
-                )
+                //Check if response is saved in SharedPreference
+                response = getResponseFromPref(context)
+
+                if (response != null) {
+                    _uiState.value = TradingUiState(
+                        response = response
+                    )
+                    createBottomSheetData()
+                } else {
+                    _uiState.value = TradingUiState(
+                        showError = true
+                    )
+                }
             }
         }
     }
@@ -87,7 +101,7 @@ class TradingViewModel @Inject constructor(
         finalData.add(
             TitleAmountVO(
                 context.getString(R.string.current_value),
-                context.getString(R.string.rs_symbol)+currentValue.roundOff()
+                context.getString(R.string.rs_symbol) + currentValue.roundOff()
             )
         )
     }
@@ -105,7 +119,7 @@ class TradingViewModel @Inject constructor(
         finalData.add(
             TitleAmountVO(
                 context.getString(R.string.total_investment),
-                context.getString(R.string.rs_symbol)+totalInvestment.roundOff()
+                context.getString(R.string.rs_symbol) + totalInvestment.roundOff()
             )
         )
     }
@@ -115,7 +129,7 @@ class TradingViewModel @Inject constructor(
         finalData.add(
             TitleAmountVO(
                 context.getString(R.string.total_profit_loss),
-                context.getString(R.string.rs_symbol)+totalPandL.roundOff()
+                context.getString(R.string.rs_symbol) + totalPandL.roundOff()
             )
         )
     }
@@ -129,7 +143,7 @@ class TradingViewModel @Inject constructor(
         finalData.add(
             TitleAmountVO(
                 context.getString(R.string.today_profit_loss),
-                context.getString(R.string.rs_symbol)+todayPandL.roundOff()
+                context.getString(R.string.rs_symbol) + todayPandL.roundOff()
             )
         )
     }
