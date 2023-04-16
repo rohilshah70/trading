@@ -75,7 +75,8 @@ private fun TradingView(
                             start = 12.dp,
                             top = 8.dp
                         ),
-                    text = stringResource(id = R.string.toolbar_title),
+                    text = stringResource(id = R.string.toolbar_title) + if(uiState.isOffline)
+                        " - ${stringResource(id = R.string.offline_text)}" else "",
                     textAlign = TextAlign.Center,
                     color = Color.White,
                     fontWeight = FontWeight.Bold,

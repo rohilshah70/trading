@@ -47,7 +47,8 @@ class TradingViewModel @Inject constructor(
         _uiState.update { currentState ->
             currentState.copy(
                 showLoader = true,
-                showError = false
+                showError = false,
+                isOffline = false
             )
         }
         viewModelScope.launch(Dispatchers.IO) {
@@ -67,7 +68,8 @@ class TradingViewModel @Inject constructor(
 
                 if (response != null) {
                     _uiState.value = TradingUiState(
-                        response = response
+                        response = response,
+                        isOffline = true
                     )
                     createBottomSheetData()
                 } else {
@@ -151,6 +153,7 @@ class TradingViewModel @Inject constructor(
 
 data class TradingUiState(
     val response: ResponseVO? = null,
+    val isOffline: Boolean = false,
     val bottomData: List<TitleAmountVO>? = null,
     val showLoader: Boolean = false,
     val showError: Boolean = false
