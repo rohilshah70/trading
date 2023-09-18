@@ -7,8 +7,8 @@ import com.google.gson.Gson
 import java.math.RoundingMode
 import java.text.DecimalFormat
 
-private val PREFERENCE_STORE = "trading_store"
-private val RESPONSE_KEY = "response"
+private const val PREFERENCE_STORE = "trading_store"
+private const val RESPONSE_KEY = "response"
 
 private val df = DecimalFormat("0.00").also {
     it.roundingMode = RoundingMode.UP

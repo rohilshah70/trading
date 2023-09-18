@@ -45,7 +45,6 @@ interface ApiService {
         val json = kotlinx.serialization.json.Json {
             ignoreUnknownKeys = true
             isLenient = true
-            encodeDefaults = false
         }
 
         inline fun <reified T: Any> deserializeData(request: String): T? {
