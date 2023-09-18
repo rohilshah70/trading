@@ -22,6 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.trading.roundOff
+import com.example.trading.viewmodel.TradingEvent
 import com.example.trading.viewmodel.TradingUiState
 import com.example.trading.viewmodel.TradingViewModel
 import com.example.trading.vo.ResponseVO.Companion.deserializeResponseVO
@@ -30,21 +31,20 @@ import com.example.trading.vo.TitleAmountVO
 @Composable
 fun TradingMainView(
     modifier: Modifier = Modifier,
-    viewModel: TradingViewModel,
-    onBackPressed: () -> Unit = {}
+    viewModel: TradingViewModel
 ) {
-    val uiState = viewModel.uiState.collectAsState()
+    val uiState = viewModel.state.collectAsState().value
 
     BackHandler(
         enabled = true,
         onBack = {
-            onBackPressed()
+            viewModel.setEvent(TradingEvent.BackPressed)
         }
     )
 
     TradingView(
         modifier = modifier,
-        uiState = uiState.value
+        uiState = uiState
     )
 }
 
@@ -53,7 +53,7 @@ private fun TradingView(
     modifier: Modifier = Modifier,
     uiState: TradingUiState
 ) {
-    val TAG = "TradingMainView"
+    val TAG = "TradingView"
 
     val state = rememberLazyListState()
 

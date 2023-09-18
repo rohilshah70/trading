@@ -5,6 +5,10 @@ import android.util.Log
 import androidx.lifecycle.*
 import com.example.trading.R
 import com.example.trading.getResponseFromPref
+import com.example.trading.mvi.MviEffect
+import com.example.trading.mvi.MviEvent
+import com.example.trading.mvi.MviState
+import com.example.trading.mvi.MviViewModel
 import com.example.trading.network.ApiService
 import com.example.trading.roundOff
 import com.example.trading.saveResponseInPref
@@ -13,22 +17,14 @@ import com.example.trading.vo.TitleAmountVO
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class TradingViewModel @Inject constructor(
     @ApplicationContext val context: Context
-) : ViewModel() {
-    private val TAG = "TradingViewModel"
-
-    private val _uiState = MutableStateFlow(TradingUiState())
-    val uiState: StateFlow<TradingUiState> = _uiState.asStateFlow()
+) : MviViewModel<TradingUiState, TradingEvent, TradingEffect>(TradingUiState()) {
+    private val TAG = TradingViewModel::class.java.simpleName
 
     private var currentValue = 0.0
     private var totalInvestment = 0.0
@@ -41,40 +37,79 @@ class TradingViewModel @Inject constructor(
 
     private val finalData = mutableListOf<TitleAmountVO>()
 
-    private var response: ResponseVO? = null
+    private var apiResponse: ResponseVO? = null
 
     init {
-        _uiState.update { currentState ->
-            currentState.copy(
-                showLoader = true,
-                showError = false,
-                isOffline = false
-            )
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            //TODO remove in actual usage
-//            delay(3000)
-            response = apiService.getProducts()
-            if (response != null) {
-                saveResponseInPref(context = context, responseVO = response)
-                println("Saved data --> ${getResponseFromPref(context)}")
-                _uiState.value = TradingUiState(
-                    response = response
-                )
-                createBottomSheetData()
-            } else {
-                //Check if response is saved in SharedPreference
-                response = getResponseFromPref(context)
+        //Show loader initially
+        setEffect(TradingEffect.ShowLoader)
 
-                if (response != null) {
-                    _uiState.value = TradingUiState(
-                        response = response,
-                        isOffline = true
+        setEffect(TradingEffect.FetchDataFromApi)
+    }
+
+
+    override suspend fun handleEvents(event: TradingEvent) {
+        // No event handled here
+    }
+
+    override suspend fun handleEffects(effect: TradingEffect) {
+        when (effect) {
+            TradingEffect.ShowLoader -> {
+                updateState {
+                    copy(
+                        showLoader = true,
+                        showError = false,
+                        isOffline = false
                     )
-                    createBottomSheetData()
-                } else {
-                    _uiState.value = TradingUiState(
+                }
+            }
+
+            TradingEffect.FetchDataFromApi -> {
+                viewModelScope.launch(Dispatchers.IO) {
+                    //Make the api call
+                    apiResponse = apiService.getProducts()
+
+                    if (apiResponse != null) {
+                        saveResponseInPref(context = context, responseVO = apiResponse)
+                        println("Saved data --> ${getResponseFromPref(context)}")
+                        setEffect(TradingEffect.UpdateMainData())
+                        createBottomSheetData()
+                    } else {
+                        //Check if response is saved in SharedPreference
+                        apiResponse = getResponseFromPref(context)
+
+                        if (apiResponse != null) {
+                            //Response found in shared pref, show a msg that it is local data
+                            setEffect(TradingEffect.UpdateMainData(true))
+                            createBottomSheetData()
+                        } else {
+                            //Data not found in shared pref, show error
+                            setEffect(TradingEffect.ShowError)
+                        }
+                    }
+                }
+            }
+
+            TradingEffect.ShowError -> {
+                updateState {
+                    TradingUiState(
                         showError = true
+                    )
+                }
+            }
+
+            TradingEffect.UpdateBottomSheetData -> {
+                updateState {
+                    copy(
+                        bottomData = finalData
+                    )
+                }
+            }
+
+            is TradingEffect.UpdateMainData -> {
+                updateState {
+                    TradingUiState(
+                        response = apiResponse,
+                        isOffline = effect.isOffline
                     )
                 }
             }
@@ -86,16 +121,12 @@ class TradingViewModel @Inject constructor(
         calculateTotalInvestment()
         calculateTodayPandL()
         calculateTotalPandL()
-        _uiState.update { currentState ->
-            currentState.copy(
-                bottomData = finalData
-            )
-        }
+        setEffect(TradingEffect.UpdateBottomSheetData)
     }
 
 
     private fun calculateCurrentValue() {
-        response?.data?.forEach {
+        apiResponse?.data?.forEach {
             if (it.quantity != null && it.ltp != null) {
                 currentValue += it.quantity.times(it.ltp)
             }
@@ -109,7 +140,7 @@ class TradingViewModel @Inject constructor(
     }
 
     private fun calculateTotalInvestment() {
-        response?.data?.forEach {
+        apiResponse?.data?.forEach {
             if (it.quantity != null && it.avgPrice != null) {
                 try {
                     totalInvestment += it.quantity.times(it.avgPrice.toDouble())
@@ -137,7 +168,7 @@ class TradingViewModel @Inject constructor(
     }
 
     private fun calculateTodayPandL() {
-        response?.data?.forEach {
+        apiResponse?.data?.forEach {
             if (it.quantity != null && it.ltp != null && it.close != null) {
                 todayPandL += (it.close.minus(it.ltp)).times(it.quantity)
             }
@@ -157,4 +188,16 @@ data class TradingUiState(
     val bottomData: List<TitleAmountVO>? = null,
     val showLoader: Boolean = false,
     val showError: Boolean = false
-)
+) : MviState
+
+sealed class TradingEffect : MviEffect {
+    object ShowLoader : TradingEffect()
+    object ShowError : TradingEffect()
+    object FetchDataFromApi : TradingEffect()
+    object UpdateBottomSheetData : TradingEffect()
+    data class UpdateMainData(val isOffline: Boolean = false) : TradingEffect()
+}
+
+sealed class TradingEvent : MviEvent {
+    object BackPressed : TradingEvent()
+}
