@@ -1,4 +1,4 @@
-This is a stock portfolio application that fetches stock data from an external API and displays a list of holdings (stocks invested) to the user. The app is built using MVVM architecture to ensure modularity, separation of concerns, and scalability.
+This is a stock portfolio application that fetches stock data from an external API and displays a list of holdings (stocks invested) to the user. The app is built using MVI architecture to ensure modularity, separation of concerns, and scalability.
 
 # Requirements
 To run the application, you need the following:
